@@ -3,6 +3,9 @@ from pygame.locals import *
 screen = pygame.display.set_mode((850,750))
 playing = True
 
+pygame.init()
+
+
 brd1 = pygame.image.load("images/brd1.png")
 brd2 = pygame.image.load("images/brd2.png")
 brd3 = pygame.image.load("images/brd3.png")
@@ -17,6 +20,7 @@ pipe_gap = 210
 pipe_frequency = 1500
 last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0
+pipe_frequency += (score*25)
 pass_pipe = False
 
 bg = pygame.image.load("images/flapground.png")
@@ -39,7 +43,7 @@ class Pipe(pygame.sprite.Sprite):
     def update(self):
         if self.rect.right <= 0:
             self.kill()
-        self.rect.x -= scroll_speed
+        self.rect.x -= scroll_speed + abs(score)
 
 
 class Bird(pygame.sprite.Sprite):
@@ -59,7 +63,7 @@ class Bird(pygame.sprite.Sprite):
             if self.rect.bottom < 625:
                 self.rect.y += int(self.velocity)
         if game_over==False:
-            if pygame.mouse.get_pressed()[0]==1 and self.clicked == False:
+            if pygame.mouse.get_pressed()[0]==1 and self.clicked == False and bird.rect.y >= 10:
                 self.clicked = True
                 self.velocity = -12
             if pygame.mouse.get_pressed()[0]==0:
@@ -84,19 +88,31 @@ pipe =  pygame.sprite.Group()
 sprites = pygame.sprite.Group()
 sprites.add(bird)
 
-
 clock = pygame.time.Clock()
+
+class Button():
+    def __init__(self,x,y,image):
+        self.image = restartimg
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x,y)
+    def draw(self):
+        action = False
+        pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == True:
+                action = True
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        return action
+
+button = Button(425, int(750/2), restartimg)
 
 while playing:
     clock .tick(60)
-    if bird.rect.y >= 625:
-        game_over=True
-        flying=False
-    screen.blit(bg, (0,0))
-    screen.blit(floor, (fx,625))
-    sprites.draw(screen)
+    pipe_gap -= score
     sprites.update()
+    screen.blit(bg, (0,0))    
     pipe.draw(screen)
+    screen.blit(floor, (fx,625))
     if len(pipe) > 0:
         if sprites.sprites()[0].rect.left > pipe.sprites()[0].rect.left and sprites.sprites()[0].rect.right < pipe.sprites()[0].rect.right and pass_pipe == False:
             pass_pipe = True
@@ -106,6 +122,12 @@ while playing:
                 pass_pipe = False
     if game_over == True:
         ground_scroll = 0
+        if button.draw() == True:
+            game_over = False
+            pipe.empty()
+            bird.rect.x = 130
+            bird.rect.y = 400
+            score = 0
     if pygame.sprite.groupcollide(sprites, pipe, False, False):
         game_over = True
         flying = False
@@ -123,6 +145,13 @@ while playing:
         fx -= scroll_speed
         if abs(fx) > 35:
             fx = 0
+    font = pygame.font.SysFont("arial", 30)
+    text = font.render(("Score:" + str(score)), True, "purple")
+    screen.blit(text, (10, 10))
+    sprites.draw(screen)
+    if bird.rect.bottom >= 620:
+        game_over=True
+        flying=False
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
